@@ -1,0 +1,12 @@
+(() => {
+ const db=window.jackomoSupabase?.(), slug=new URLSearchParams(location.search).get("g"), hero=document.getElementById("gallery-hero"), grid=document.getElementById("media-grid");
+ const esc=s=>String(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+ if(!db||!slug){hero.innerHTML="<p>Esta galeria não está disponível.</p>";return;}
+ (async()=>{const {data:g,error}=await db.from("galleries").select("*").eq("slug",slug).eq("published",true).single();if(error||!g){hero.innerHTML="<p>Galeria não encontrada ou ainda não publicada.</p>";return;}
+ document.title=g.title+" | Fotografando com Jackomo";hero.style.backgroundImage=g.cover_url?`linear-gradient(90deg,rgba(0,0,0,.8),rgba(0,0,0,.35)),url("${g.cover_url.replace(/"/g,"%22")}")`:"";hero.innerHTML=`<p class="eyebrow">GALERIA EXCLUSIVA</p><h1>${esc(g.title)}</h1><p>${g.event_date?new Date(g.event_date+"T12:00:00").toLocaleDateString("pt-BR"):""} ${g.client_name?"· "+esc(g.client_name):""}</p><p>${esc(g.description)}</p>`;
+ const {data:items}=await db.from("media").select("*").eq("gallery_id",g.id).order("created_at",{ascending:true});grid.innerHTML=(items||[]).map(m=>m.media_type==="video"?`<article class="media-card"><video controls preload="metadata" src="${esc(m.url)}"></video><a download href="${esc(m.url)}">Baixar vídeo ↓</a></article>`:`<article class="media-card"><button class="photo-open" data-src="${esc(m.url)}" aria-label="Ampliar foto"><img loading="lazy" src="${esc(m.url)}" alt="${esc(m.caption)}"></button><div class="media-caption">${esc(m.caption)} <a download href="${esc(m.url)}">Baixar ↓</a></div></article>`).join("")||'<div class="empty-state">Os registros desta galeria serão adicionados em breve.</div>';
+ document.querySelectorAll(".photo-open").forEach(b=>b.onclick=()=>{document.getElementById("lightbox-content").innerHTML=`<img src="${b.dataset.src}" alt="">`;document.getElementById("lightbox").hidden=false;});
+ if(g.drive_url)document.getElementById("drive-cta").innerHTML=`<a class="gold-btn" href="${esc(g.drive_url)}" target="_blank" rel="noopener">Acessar álbum completo no Google Drive ↗</a>`;
+ })();
+ const lb=document.getElementById("lightbox");document.getElementById("lightbox-close").onclick=()=>lb.hidden=true;lb.onclick=e=>{if(e.target===lb)lb.hidden=true;};
+})();
